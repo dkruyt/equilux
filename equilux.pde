@@ -51,23 +51,23 @@ volatile int state = LOW;
   
 void setup() {
   
-  //Serial.begin(19200);
+  Serial.begin(19200);
   
   //start wire and rtc
   Wire.begin();
   RTC.begin();
+  
+  if (! RTC.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    RTC.adjust(DateTime(__DATE__, __TIME__));
+  }
   
   // set 1hz sqw on DS1307 pin 7, we will using this for a interrupt on arduino pin 2
   Wire.beginTransmission(0x68);              // write the control register
   Wire.send(0x07);                           // register address 07H)
   Wire.send(0x90);                           // 0x90=1Hz, 0x91=4kHz, 0x92=8kHz, 0x93=32kHz
   Wire.endTransmission();
-    
-  //delay(500);
-  //Serial.println("I am alive!");
-
-  // Use softRTC for testing
-  //RTC.begin(DateTime(__DATE__, __TIME__));
   
   // The Arduino needs to clock out the data to the pixels
   // this happens in interrupt timer 1, we can change how often
@@ -75,7 +75,7 @@ void setup() {
   // time to do the pixel updates and a nicer/faster display, 
   // especially with strands of over 100 dots.
   // (Note that the max is 'pessimistic', its probably 10% or 20% less in reality)
-  strip.setCPUmax(70);  // up this if the strand flickers or is slow
+  strip.setCPUmax(95);  // up this if the strand flickers or is slow
   
   // Start up the LED counter
   strip.begin();
@@ -97,25 +97,26 @@ void loop () { }
 
 void clock() {
     
-    //attach Interrupt stops the strip, so start it again  
-    strip.begin();
+  //attach Interrupt stops the strip, so start it again  
+  strip.begin();
     
-    //blink led on pin 13
-    digitalWrite(led, state);
-    state = !state;
+  //blink led on pin 13
+  digitalWrite(led, state);
+  state = !state;
 
   //Get current time
   DateTime now = RTC.now();  
   
   // mapping hour 24 => 12 => 60
   h = now.hour(), DEC;
-  if (h > 12) { h = h - 12; }
-  h = map(h, 0, 12, 0, 59);
+  if (h > 12) { h = h - 12; } 
+  //else if (h = 12) { h == 0; }
+  h = map(h, 0, 12, 0, 60);
   
   if ( m < 15 ) { h == h; }
-  else if ( m < 30 ) { h = h + 2; }
-  else if ( m < 45 ) { h = h + 4; }
-  else if ( m < 59 ) { h = h + 6; }
+  else if ( m < 30 ) { h = h + 1; }
+  else if ( m < 45 ) { h = h + 2; }
+  else if ( m < 59 ) { h = h + 3; }
      
   m = now.minute(), DEC;
   s = now.second(), DEC;
@@ -169,9 +170,10 @@ void clock() {
          // update strip
          strip.show();
          
-         delay(95 - (2 * y)); 
+         delay(105 - (2 * y)); 
      }
    
+    // Debug   
     //Serial.print(now.year(), DEC);
     //Serial.print('/');
     //Serial.print(now.month(), DEC);
@@ -183,6 +185,7 @@ void clock() {
     //Serial.print(now.minute(), DEC);
     //Serial.print(':');
     //Serial.print(now.second(), DEC);
-    //Serial.println(); 
+    //Serial.println();
+    //Serial.println(h); 
 
 }
